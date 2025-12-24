@@ -147,4 +147,87 @@ export class FileScraper {
             return null;
         }
     }
+
+    /**
+     * Navigates to a page, searches for a link containing the fileName, and downloads it.
+     * @param pageUrl URL to search on
+     * @param fileNamePattern Substring to look for in href or text
+     */
+    async findLinkAndDownload(pageUrl: string, fileNamePattern: string): Promise<string | null> {
+        if (!this.browser) await this.launch();
+
+        const context = await this.browser!.newContext({
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            acceptDownloads: true,
+             extraHTTPHeaders: {
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://www.nseindia.com/',
+            }
+        });
+        const page = await context.newPage();
+
+        try {
+            console.log(`Navigating to ${pageUrl}...`);
+            await page.goto(pageUrl, { waitUntil: 'commit', timeout: 30000 });
+            await page.waitForTimeout(5000); // Wait for dynamic content
+
+            console.log(`Searching for link containing: ${fileNamePattern}`);
+
+            // Find link where href contains pattern or text contains pattern
+            // We use a locator with filter
+            const link = page.locator('a').filter({ hasText: fileNamePattern }).first();
+            const hrefLink = page.locator(`a[href*="${fileNamePattern}"]`).first();
+
+            let targetLocator = null;
+            if (await link.count() > 0 && await link.isVisible()) {
+                console.log('Found link by text.');
+                targetLocator = link;
+            } else if (await hrefLink.count() > 0) {
+                 console.log('Found link by href.');
+                 targetLocator = hrefLink;
+            } else {
+                console.log('File link not found on page.');
+                return null;
+            }
+
+            // Download Strategy:
+            // 1. Try to get href from the locator
+            const href = await targetLocator.getAttribute('href');
+
+            // Setup download
+            const downloadPromise = page.waitForEvent('download', { timeout: 60000 });
+            
+            if (href) {
+                console.log(`Navigating directly to download link: ${href}`);
+                // If href is relative, resolve it (though NSE usually gives absolute or we can handle it)
+                const downloadUrl = href.startsWith('http') ? href : new URL(href, pageUrl).toString();
+                
+                // Trigger download via navigation (more reliable than click)
+                try {
+                     await page.goto(downloadUrl, { timeout: 30000 });
+                } catch (e) {
+                    console.log('Navigation for download triggered (expected).');
+                }
+            } else {
+                 console.log('No href found, trying force click...');
+                 await targetLocator.click({ force: true });
+            }
+
+            const download = await downloadPromise;
+            const originalName = download.suggestedFilename();
+            const savePath = path.join(this.downloadPath, originalName);
+            
+            console.log(`Downloading ${originalName}...`);
+            await download.saveAs(savePath);
+            
+            return savePath;
+
+        } catch (error) {
+            console.error(`Error in findLinkAndDownload: ${error}`);
+            return null;
+        } finally {
+            await page.close();
+            await context.close();
+        }
+    }
 }

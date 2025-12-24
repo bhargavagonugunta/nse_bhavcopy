@@ -6,6 +6,10 @@ services:
     volumes:
       - ./downloads:/app/downloads
     environment:
-      - TARGET_URL=https://nsearchives.nseindia.com/content/cm/BhavCopy_NSE_CM_0_0_0_20251223_F_0000.csv.zip
-    #  - TRIGGER_SELECTOR=... # Optional
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USER=bhargavagonugunta123@gmail.com
+      - SMTP_PASS=mget cbyi gvzp ifam
+      - SMTP_FROM=bhargavagonugunta123@gmail.com
+      - SMTP_TO=kpdasari@gmail.com
     working_dir: /app
