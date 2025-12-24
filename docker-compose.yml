@@ -1,0 +1,11 @@
+
+
+services:
+  scraper:
+    build: .
+    volumes:
+      - ./downloads:/app/downloads
+    environment:
+      - TARGET_URL=https://nsearchives.nseindia.com/content/cm/BhavCopy_NSE_CM_0_0_0_20251223_F_0000.csv.zip
+    #  - TRIGGER_SELECTOR=... # Optional
+    working_dir: /app
