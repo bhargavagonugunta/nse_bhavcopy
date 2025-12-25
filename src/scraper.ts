@@ -5,6 +5,8 @@ import AdmZip from 'adm-zip';
 
 export class FileScraper {
     private browser: Browser | null = null;
+    private context: any | null = null;
+    private page: Page | null = null;
     private downloadPath: string;
 
     constructor(downloadPath: string = 'downloads') {
@@ -16,7 +18,7 @@ export class FileScraper {
 
     async launch() {
         this.browser = await chromium.launch({
-            channel: 'chrome', // Try to use system Chrome
+            // channel: 'chrome', // Commented out to use bundled Chromium (smaller image)
             headless: true,
             args: [
                 '--disable-blink-features=AutomationControlled',
@@ -25,11 +27,45 @@ export class FileScraper {
                 '--disable-http2'
             ]
         });
+
+        // Initialize Context and Page once
+        this.context = await this.browser.newContext({
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            acceptDownloads: true,
+             extraHTTPHeaders: {
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-User': '?1',
+                'Sec-Fetch-Dest': 'document',
+                'Referer': 'https://www.nseindia.com/',
+            }
+        });
+        this.page = await this.context.newPage();
+
+        // Prime Session immediately upon launch
+        try {
+            console.log("Visiting NSE homepage to establish session (launch)...");
+            await this.page!.goto("https://www.nseindia.com/", { waitUntil: 'commit', timeout: 20000 });
+            console.log("Homepage committed, waiting 5s...");
+            await this.page!.waitForTimeout(5000); 
+        } catch (e) {
+            console.warn("Could not load homepage during launch, continuing...", e);
+        }
     }
 
     async close() {
+        if (this.page) {
+            await this.page.close().catch(() => {});
+            this.page = null;
+        }
+        if (this.context) {
+            await this.context.close().catch(() => {});
+            this.context = null;
+        }
         if (this.browser) {
-            await this.browser.close();
+            await this.browser.close().catch(() => {});
             this.browser = null;
         }
     }
@@ -153,18 +189,14 @@ export class FileScraper {
      * @param pageUrl URL to search on
      * @param fileNamePattern Substring to look for in href or text
      */
+    /**
+     * Navigates to a page, searches for a link containing the fileName, and downloads it.
+     * @param pageUrl URL to search on
+     * @param fileNamePattern Substring to look for in href or text
+     */
     async findLinkAndDownload(pageUrl: string, fileNamePattern: string): Promise<string | null> {
-        if (!this.browser) await this.launch();
-
-        const context = await this.browser!.newContext({
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-            acceptDownloads: true,
-             extraHTTPHeaders: {
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Referer': 'https://www.nseindia.com/',
-            }
-        });
-        const page = await context.newPage();
+        if (!this.browser || !this.page) await this.launch();
+        const page = this.page!;
 
         try {
             console.log(`Navigating to ${pageUrl}...`);
@@ -187,6 +219,19 @@ export class FileScraper {
                  targetLocator = hrefLink;
             } else {
                 console.log('File link not found on page.');
+                
+                // DEBUG: Log all zip links found to help diagnose
+                try {
+                    const allZips = await page.evaluate(() => {
+                        return Array.from(document.querySelectorAll('a'))
+                            .map(a => a.href)
+                            .filter(h => h.includes('.zip'));
+                    });
+                    console.log('DEBUG: Available .zip links on page:', JSON.stringify(allZips, null, 2));
+                } catch (e) {
+                    console.log('DEBUG: Failed to list links');
+                }
+
                 return null;
             }
 
@@ -195,14 +240,13 @@ export class FileScraper {
             const href = await targetLocator.getAttribute('href');
 
             // Setup download
+            // Note: Since we are reusing the page, we handle the event carefully
             const downloadPromise = page.waitForEvent('download', { timeout: 60000 });
             
             if (href) {
                 console.log(`Navigating directly to download link: ${href}`);
-                // If href is relative, resolve it (though NSE usually gives absolute or we can handle it)
                 const downloadUrl = href.startsWith('http') ? href : new URL(href, pageUrl).toString();
                 
-                // Trigger download via navigation (more reliable than click)
                 try {
                      await page.goto(downloadUrl, { timeout: 30000 });
                 } catch (e) {
@@ -225,9 +269,7 @@ export class FileScraper {
         } catch (error) {
             console.error(`Error in findLinkAndDownload: ${error}`);
             return null;
-        } finally {
-            await page.close();
-            await context.close();
         }
+        // Do NOT close page/context here, as we reuse it
     }
 }

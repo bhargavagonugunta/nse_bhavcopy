@@ -3,6 +3,8 @@ import { EmailService } from './email';
 import path from 'path';
 import fs from 'fs';
 import cron from 'node-cron';
+import dotenv from 'dotenv';
+dotenv.config();
 
 // Helper to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -121,7 +123,7 @@ console.log('[App] Initializing NSE Bhavcopy Scheduler...');
 console.log('[App] Scheduled to run at 19:30 IST (Asia/Kolkata) Mon-Fri.');
 
 // Schedule to run at 19:30 IST (Asia/Kolkata timezone)
-cron.schedule('30 19 * * 1-5', () => {
+cron.schedule('00 20 * * 1-5', () => {
     console.log(`[Cron] Triggering scheduled job at ${new Date().toISOString()}`);
     runScheduler();
 }, {
