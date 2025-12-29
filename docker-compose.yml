@@ -1,15 +1,51 @@
 
-
 services:
-  scraper:
-    build: .
+  nse_bhavcopy_scraper:
+    image: ghcr.io/bhargavagonugunta/nse_bhavcopy:sha-b53af59
+    container_name: nse_bhavcopy_production
+    restart: unless-stopped
+    
     volumes:
       - ./downloads:/app/downloads
+      - ./logs:/app/logs
+    
     environment:
+      # SMTP Configuration (Google SMTP)
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
+      - SMTP_SECURE=${SMTP_SECURE:-true}
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASS=${SMTP_PASS}
       - SMTP_FROM=${SMTP_FROM}
       - SMTP_TO=${SMTP_TO}
+      
+      # Node Environment
+      - NODE_ENV=production
+      - TZ=Asia/Kolkata
+    
     working_dir: /app
+    
+    # Health check to ensure container is running properly
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Resource limits (adjust based on your server capacity)
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
