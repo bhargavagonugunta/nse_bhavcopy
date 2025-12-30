@@ -16,15 +16,22 @@ COPY . .
 RUN npx tsc
 
 # Stage 2: Production Runtime
-FROM mcr.microsoft.com/playwright:v1.49.0-jammy
+FROM mcr.microsoft.com/playwright:v1.57.0-jammy
 
 WORKDIR /app
+
+# # Install system dependencies
+# RUN apt-get update && apt-get install -y \
+#     tzdata \
+#     && rm -rf /var/lib/apt/lists/*
+
 
 # Copy package files
 COPY package.json package-lock.json* ./
 
 # Install ONLY production dependencies
 RUN npm ci --only=production
+
 
 # Copy compiled JS from builder
 COPY --from=builder /app/dist ./dist

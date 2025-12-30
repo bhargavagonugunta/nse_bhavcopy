@@ -1,7 +1,9 @@
 
 services:
   nse_bhavcopy_scraper:
-    image: ghcr.io/bhargavagonugunta/nse_bhavcopy:sha-b53af59
+    # image: ghcr.io/bhargavagonugunta/nse_bhavcopy:sha-b53af59
+    build: .
+    image: nse_bhavcopy:local
     container_name: nse_bhavcopy_production
     restart: unless-stopped
     
@@ -11,14 +13,14 @@ services:
     
     environment:
       # SMTP Configuration (Google SMTP)
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_SECURE=${SMTP_SECURE:-true}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASS=${SMTP_PASS}
-      - SMTP_FROM=${SMTP_FROM}
-      - SMTP_TO=${SMTP_TO}
-      
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_SECURE=false
+      - SMTP_USER=bhargavagonugunta123@gmail.com
+      - SMTP_PASS=mget cbyi gvzp ifam
+      - SMTP_FROM=bhargavagonugunta123@gmail.com
+      - SMTP_TO=kpdasari@gmail.com
+    
       # Node Environment
       - NODE_ENV=production
       - TZ=Asia/Kolkata
