@@ -4,7 +4,7 @@
 
 - Docker and Docker Compose installed on your server
 - Valid Google SMTP credentials configured in `.env` file
-- Server has internet access to pull the Docker image from GitHub Container Registry
+- Server has internet access to pull the Docker image from Amazon ECR
 
 ## Deployment Steps
 
@@ -46,11 +46,11 @@ nano .env
 ### 3. Pull the Docker Image
 
 ```bash
-# Login to GitHub Container Registry (if private)
-echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+# Login to Amazon ECR (using AWS CLI)
+aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 205930636356.dkr.ecr.ap-south-1.amazonaws.com
 
 # Pull the image
-docker pull ghcr.io/bhargavagonugunta/nse_bhavcopy:sha-b53af59
+docker pull 205930636356.dkr.ecr.ap-south-1.amazonaws.com/nse-bhavcopy-repo:latest
 ```
 
 ### 4. Start the Application
@@ -114,7 +114,7 @@ docker-compose logs --tail=100
 
 ```bash
 # Pull new image
-docker pull ghcr.io/bhargavagonugunta/nse_bhavcopy:sha-b53af59
+docker pull 205930636356.dkr.ecr.ap-south-1.amazonaws.com/nse-bhavcopy-repo:latest
 
 # Recreate container with new image
 docker-compose up -d --force-recreate

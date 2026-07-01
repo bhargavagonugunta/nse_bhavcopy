@@ -39,7 +39,7 @@ mkdir -p downloads logs
 
 # Pull the latest image
 echo "📥 Pulling Docker image..."
-docker pull ghcr.io/bhargavagonugunta/nse_bhavcopy:sha-b53af59
+docker pull 205930636356.dkr.ecr.ap-south-1.amazonaws.com/nse-bhavcopy-repo:latest
 
 # Stop any existing containers
 echo "🛑 Stopping existing containers (if any)..."

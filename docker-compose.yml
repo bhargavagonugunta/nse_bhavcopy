@@ -1,7 +1,7 @@
 
 services:
   nse_bhavcopy_scraper:
-    # image: ghcr.io/bhargavagonugunta/nse_bhavcopy:sha-b53af59
+    # image: 205930636356.dkr.ecr.ap-south-1.amazonaws.com/nse-bhavcopy-repo:latest
     build: .
     image: nse_bhavcopy:local
     container_name: nse_bhavcopy_production

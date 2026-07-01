@@ -281,4 +281,48 @@ export class FileScraper {
         }
         // Do NOT close page/context here, as we reuse it
     }
+
+    /**
+     * Gets the download path directory.
+     */
+    getDownloadPath(): string {
+        return this.downloadPath;
+    }
+
+    /**
+     * Downloads a file directly from a URL using the active page and browser context.
+     * Useful for range scraping without having to reload the browser for each request.
+     * @param url Direct download URL
+     */
+    async downloadDirectFile(url: string): Promise<string | null> {
+        if (!this.browser || !this.page) await this.launch();
+        const page = this.page!;
+
+        try {
+            log(`Downloading direct file from URL: ${url}`);
+            
+            const downloadPromise = page.waitForEvent('download', { timeout: 60000 });
+            
+            try {
+                await page.goto(url, { timeout: 45000 });
+            } catch (e) {
+                // Direct downloads usually abort the navigation, which throws an error in Playwright.
+                // We catch it and proceed since the download event is still triggered.
+                log('Direct download navigation completed or aborted (expected).');
+            }
+            
+            const download = await downloadPromise;
+            const originalName = download.suggestedFilename();
+            const savePath = path.join(this.downloadPath, originalName);
+            
+            log(`Downloading ${originalName}...`);
+            await download.saveAs(savePath);
+            log(`Successfully saved to: ${savePath}`);
+            
+            return savePath;
+        } catch (error) {
+            logError(`Error in downloadDirectFile: ${error}`);
+            return null;
+        }
+    }
 }
