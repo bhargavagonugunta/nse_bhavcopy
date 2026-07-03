@@ -120,23 +120,7 @@ async function runScheduler() {
                 if (downloadedFile) {
                     log(`[Scheduler] Success! Downloaded: ${downloadedFile}`);
                     
-                    // Unzip
-                    const extractedPath = await scraper.unzipFile(downloadedFile);
-                    let attachmentPath = downloadedFile; // Default to zip
-                    
-                    if (extractedPath) {
-                        try {
-                            const files = fs.readdirSync(extractedPath);
-                            const csvFile = files.find(f => f.endsWith('.csv'));
-                            if (csvFile) {
-                                attachmentPath = path.join(extractedPath, csvFile);
-                            }
-                        } catch (e) {
-                            logError('Error finding extracted CSV:', e);
-                        }
-                    }
-                    
-                    collectedAttachments.push(attachmentPath);
+                    collectedAttachments.push(downloadedFile);
                     completedTasks.add(task.name);
                 } else {
                     log(`[Scheduler] File ${task.fileNamePattern} not found yet.`);
@@ -325,14 +309,14 @@ if (fromDateStr && toDateStr) {
     // If the Docker container time is UTC, we need 14:00.
     // If Docker container time is IST (not guaranteed), we use 19:30.
     // BEST PRACTICE: Use a timezone aware cron or assume UTC.
-    // The user asked for "7:30 evening" (IST presumably).
+    // The user asked for "10:30 evening" (IST presumably).
     // 19:30 IST = 14:00 UTC.
     // Let's use the 'timezone' option of node-cron for clarity if possible, or just log the time.
     log('[App] Initializing NSE Bhavcopy Scheduler...');
-    log('[App] Scheduled to run at 19:30 IST (Asia/Kolkata) Mon-Fri.');
+    log('[App] Scheduled to run at 22:30 IST (Asia/Kolkata) Mon-Fri.');
 
     // Schedule to run at 19:30 IST (Asia/Kolkata timezone)
-    cron.schedule('30 19 * * 1-5', () => {
+    cron.schedule('30 22 * * 1-5', () => {
         log(`[Cron] Triggering scheduled job at ${new Date().toISOString()}`);
         runScheduler();
     }, {
